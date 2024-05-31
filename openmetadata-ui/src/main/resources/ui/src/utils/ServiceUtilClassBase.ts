@@ -87,7 +87,7 @@ import {
   TOPIC_DEFAULT,
   TRINO,
   UNITYCATALOG,
-  VERTICA,
+  VERTICA, MINIO,
 } from '../constants/Services.constant';
 import { SearchSuggestions } from '../context/GlobalSearchProvider/GlobalSearchSuggestions/GlobalSearchSuggestions.interface';
 import { StorageServiceType } from '../generated/entity/data/container';
@@ -374,6 +374,9 @@ class ServiceUtilClassBase {
       case StorageServiceType.S3:
         return AMAZON_S3;
 
+        case StorageServiceType.MinIO:
+        return MINIO;
+
       case SearchServiceType.ElasticSearch:
         return ELASTIC_SEARCH;
 
@@ -409,6 +412,11 @@ class ServiceUtilClassBase {
     switch (type) {
       case StorageServiceType.S3: {
         schema = s3Connection;
+
+        break;
+      }
+      case StorageServiceType.MinIO: {
+        schema = minioConnection;
 
         break;
       }

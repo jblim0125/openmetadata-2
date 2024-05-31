@@ -1,0 +1,1 @@
+docker buildx build --platform linux/amd64 -t repo.iris.tools/datafabric/openmetadata-service:v1.0.0 . -f docker/development/Dockerfile
