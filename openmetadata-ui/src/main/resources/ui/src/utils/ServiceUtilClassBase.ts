@@ -52,6 +52,7 @@ import {
   LOOKER,
   MARIADB,
   METABASE,
+  MINIO,
   MLFLOW,
   ML_MODEL_DEFAULT,
   MODE,
@@ -87,7 +88,7 @@ import {
   TOPIC_DEFAULT,
   TRINO,
   UNITYCATALOG,
-  VERTICA, MINIO,
+  VERTICA,
 } from '../constants/Services.constant';
 import { SearchSuggestions } from '../context/GlobalSearchProvider/GlobalSearchSuggestions/GlobalSearchSuggestions.interface';
 import { StorageServiceType } from '../generated/entity/data/container';
@@ -101,6 +102,7 @@ import { MetadataServiceType } from '../generated/entity/services/metadataServic
 import { SearchSourceAlias } from '../interface/search.interface';
 import customConnection from '../jsons/connectionSchemas/connections/storage/customStorageConnection.json';
 import s3Connection from '../jsons/connectionSchemas/connections/storage/s3Connection.json';
+import minioConnection from '../jsons/connectionSchemas/connections/storage/minioConnection.json';
 import { getDashboardConfig } from './DashboardServiceUtils';
 import { getDatabaseConfig } from './DatabaseServiceUtils';
 import { getMessagingConfig } from './MessagingServiceUtils';
