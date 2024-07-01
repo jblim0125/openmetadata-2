@@ -2,6 +2,7 @@ package org.openmetadata.service.jdbi3;
 
 import static org.openmetadata.common.utils.CommonUtil.listOrEmpty;
 import static org.openmetadata.schema.type.Include.ALL;
+import static org.openmetadata.schema.type.Include.NON_DELETED;
 import static org.openmetadata.service.Entity.CONTAINER;
 import static org.openmetadata.service.Entity.DASHBOARD_DATA_MODEL;
 import static org.openmetadata.service.Entity.FIELD_PARENT;
@@ -12,19 +13,15 @@ import static org.openmetadata.service.Entity.populateEntityFieldTags;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
 import org.jdbi.v3.sqlobject.transaction.Transaction;
 import org.openmetadata.schema.EntityInterface;
 import org.openmetadata.schema.api.feed.ResolveTask;
 import org.openmetadata.schema.entity.data.Container;
 import org.openmetadata.schema.entity.data.DashboardDataModel;
 import org.openmetadata.schema.entity.services.StorageService;
-import org.openmetadata.schema.type.Column;
-import org.openmetadata.schema.type.ContainerFileFormat;
-import org.openmetadata.schema.type.EntityReference;
-import org.openmetadata.schema.type.Include;
-import org.openmetadata.schema.type.Relationship;
-import org.openmetadata.schema.type.TagLabel;
-import org.openmetadata.schema.type.TaskType;
+import org.openmetadata.schema.type.*;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.jdbi3.FeedRepository.TaskWorkflow;
 import org.openmetadata.service.jdbi3.FeedRepository.ThreadContext;
@@ -37,6 +34,8 @@ import org.openmetadata.service.util.JsonUtils;
 public class ContainerRepository extends EntityRepository<Container> {
   private static final String CONTAINER_UPDATE_FIELDS = "dataModel";
   private static final String CONTAINER_PATCH_FIELDS = "dataModel";
+
+  public static final String CONTAINER_SAMPLE_DATA_EXTENSION = "container.sampleData";
 
   public ContainerRepository() {
     super(
@@ -170,6 +169,72 @@ public class ContainerRepository extends EntityRepository<Container> {
   public EntityUpdater getUpdater(Container original, Container updated, Operation operation) {
     return new ContainerUpdater(original, updated, operation);
   }
+
+  @Transaction
+  public Container addTableSampleData(UUID containerId, TableData sampleData) {
+    Container container = find(containerId, NON_DELETED);
+
+    for (String columnName : sampleData.getColumns()) {
+      validateColumn(container, columnName);
+    }
+    // Make sure each row has number values for all the columns
+    for (List<Object> row : sampleData.getRows()) {
+      if (row.size() != sampleData.getColumns().size()) {
+        throw new IllegalArgumentException(
+                String.format(
+                        "Number of columns is %d but row has %d sample values",
+                        sampleData.getColumns().size(), row.size()));
+      }
+    }
+
+    daoCollection
+            .entityExtensionDAO()
+            .insert(containerId, CONTAINER_SAMPLE_DATA_EXTENSION,
+                    "tableData", JsonUtils.pojoToJson(sampleData));
+    setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
+    return container.withSampleData(sampleData);
+  }
+
+  public static void validateColumn(Container container, String columnName) {
+    boolean validColumn =
+            container.getDataModel().getColumns().stream().anyMatch(col -> col.getName().equals(columnName));
+    if (!validColumn) {
+      throw new IllegalArgumentException("Invalid column name " + columnName);
+    }
+  }
+
+  public Container getSampleData(UUID containerId, boolean authorizePII) {
+    // Validate the request content
+    Container container = find(containerId, NON_DELETED);
+    TableData sampleData =
+            JsonUtils.readValue(
+                    daoCollection
+                            .entityExtensionDAO()
+                            .getExtension(container.getId(), CONTAINER_SAMPLE_DATA_EXTENSION),
+                    TableData.class);
+    container.setSampleData(sampleData);
+    setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
+
+    // JBLIM : PII 와 관련된 태그 설정 기능은 주석처리 함.
+    // Set the column tags. Will be used to mask the sample data
+//    if (!authorizePII) {
+//      populateEntityFieldTags(entityType, container.getDataModel().getColumns(),
+//              container.getFullyQualifiedName(), true);
+//      container.setTags(getTags(container));
+//      return PIIMasker.getSampleData(table);
+//    }
+    return container;
+  }
+
+  @Transaction
+  public Container deleteSampleData(UUID containerId) {
+    // Validate the request content
+    Container container = find(containerId, NON_DELETED);
+    daoCollection.entityExtensionDAO().delete(containerId, CONTAINER_SAMPLE_DATA_EXTENSION);
+    setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
+    return container;
+  }
+
 
   @Override
   public void applyTags(Container container) {
