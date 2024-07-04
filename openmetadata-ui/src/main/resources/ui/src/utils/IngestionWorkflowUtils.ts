@@ -30,6 +30,7 @@ import mlModelMetadataPipeline from '../jsons/ingestionSchemas/mlmodelServiceMet
 import pipelineMetadataPipeline from '../jsons/ingestionSchemas/pipelineServiceMetadataPipeline.json';
 import searchMetadataPipeline from '../jsons/ingestionSchemas/searchServiceMetadataPipeline.json';
 import storageMetadataPipeline from '../jsons/ingestionSchemas/storageServiceMetadataPipeline.json';
+import storageProfilerPipeline from '../jsons/ingestionSchemas/storageServiceProfilerPipeline.json';
 import testSuitePipeline from '../jsons/ingestionSchemas/testSuitePipeline.json';
 
 export const getMetadataSchemaByServiceCategory = (
@@ -55,6 +56,20 @@ export const getMetadataSchemaByServiceCategory = (
       return {};
   }
 };
+
+export const getProfilerSchemaByServiceCategory = (
+  serviceCategory: ServiceCategory
+) => {
+  switch (serviceCategory) {
+    case ServiceCategory.DATABASE_SERVICES:
+      return databaseProfilerPipeline;
+    case ServiceCategory.STORAGE_SERVICES:
+      return storageProfilerPipeline;
+    default:
+      return {};
+  }
+};
+
 
 /**
  * @param workflowType ingestion workflow type
@@ -91,7 +106,7 @@ export const getSchemaByWorkflowType = (
       break;
     case WorkflowType.Profiler:
       schema = {
-        ...databaseProfilerPipeline,
+        ...getProfilerSchemaByServiceCategory(serviceCategory),
       };
 
       break;
