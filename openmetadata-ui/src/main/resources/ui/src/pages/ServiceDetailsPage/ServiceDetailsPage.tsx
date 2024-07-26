@@ -289,6 +289,7 @@ const ServiceDetailsPage: FunctionComponent = () => {
             PipelineType.Usage,
             PipelineType.Lineage,
             PipelineType.Profiler,
+            PipelineType.StorageProfiler,
             PipelineType.Dbt,
           ],
           limit,
