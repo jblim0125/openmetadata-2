@@ -11,9 +11,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.openmetadata.schema.api.VoteRequest;
 import org.openmetadata.schema.api.data.CreateContainer;
+import org.openmetadata.schema.api.data.CreateTableProfile;
 import org.openmetadata.schema.api.data.RestoreEntity;
+import org.openmetadata.schema.api.tests.CreateCustomMetric;
 import org.openmetadata.schema.entity.data.Container;
-import org.openmetadata.schema.entity.data.Table;
+import org.openmetadata.schema.tests.CustomMetric;
 import org.openmetadata.schema.type.*;
 import org.openmetadata.service.Entity;
 import org.openmetadata.service.jdbi3.ContainerRepository;
@@ -23,12 +25,15 @@ import org.openmetadata.service.resources.EntityResource;
 import org.openmetadata.service.security.Authorizer;
 import org.openmetadata.service.security.policyevaluator.OperationContext;
 import org.openmetadata.service.security.policyevaluator.ResourceContext;
+import org.openmetadata.service.util.FullyQualifiedName;
+import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.ResultList;
 
 import javax.json.JsonPatch;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 import java.util.List;
@@ -68,6 +73,18 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
     }
 
     public static class ContainerList extends ResultList<Container> {
+        /* Required for serde */
+    }
+
+    public static class TableProfileList extends ResultList<TableProfile> {
+        /* Required for serde */
+    }
+
+    public static class ColumnProfileList extends ResultList<ColumnProfile> {
+        /* Required for serde */
+    }
+
+    public static class SystemProfileList extends ResultList<SystemProfile> {
         /* Required for serde */
     }
 
@@ -323,12 +340,13 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                             content =
                             @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = Table.class)))
+                                    schema = @Schema(implementation = Container.class)))
             })
     public Container addSampleData(
             @Context UriInfo uriInfo,
             @Context SecurityContext securityContext,
-            @Parameter(description = "Id of the container", schema = @Schema(type = "UUID")) @PathParam("id")
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id")
             UUID id,
             @Valid TableData tableData) {
         OperationContext operationContext =
@@ -347,16 +365,17 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Successfully update the container",
+                            description = "Successfully update the Container",
                             content =
                             @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = Table.class)))
+                                    schema = @Schema(implementation = Container.class)))
             })
     public Container getSampleData(
             @Context UriInfo uriInfo,
             @Context SecurityContext securityContext,
-            @Parameter(description = "Id of the container", schema = @Schema(type = "UUID")) @PathParam("id")
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id")
             UUID id) {
         OperationContext operationContext =
                 new OperationContext(entityType, MetadataOperation.VIEW_SAMPLE_DATA);
@@ -381,18 +400,324 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                             content =
                             @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = Table.class)))
+                                    schema = @Schema(implementation = Container.class)))
             })
     public Container deleteSampleData(
             @Context UriInfo uriInfo,
             @Context SecurityContext securityContext,
-            @Parameter(description = "Id of the container", schema = @Schema(type = "UUID")) @PathParam("id")
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id")
             UUID id) {
         OperationContext operationContext =
                 new OperationContext(entityType, MetadataOperation.EDIT_SAMPLE_DATA);
         authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
         Container container = repository.deleteSampleData(id);
         return addHref(uriInfo, container);
+    }
+
+    @PUT
+    @Path("/{id}/tableProfilerConfig")
+    @Operation(
+            operationId = "addDataProfilerConfig",
+            summary = "Add table profile config",
+            description = "Add table profile config to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully updated the Container",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container addDataProfilerConfig(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id") UUID id,
+            @Valid TableProfilerConfig tableProfilerConfig) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.addTableProfilerConfig(id, tableProfilerConfig);
+        return addHref(uriInfo, container);
+    }
+
+    @GET
+    @Path("/{id}/tableProfilerConfig")
+    @Operation(
+            operationId = "getDataProfilerConfig",
+            summary = "Get table profile config",
+            description = "Get table profile config to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully updated the Container",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container getDataProfilerConfig(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the Container",
+                    schema = @Schema(type = "UUID")) @PathParam("id") UUID id) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.VIEW_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.find(id, Include.NON_DELETED);
+        return addHref(
+                uriInfo, container.withTableProfilerConfig(repository.getTableProfilerConfig(container)));
+    }
+
+    @DELETE
+    @Path("/{id}/tableProfilerConfig")
+    @Operation(
+            operationId = "delete DataProfilerConfig",
+            summary = "Delete table profiler config",
+            description = "delete table profile config to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully deleted the Table profiler config",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container deleteDataProfilerConfig(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id") UUID id) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.deleteTableProfilerConfig(id);
+        return addHref(uriInfo, container);
+    }
+
+    @GET
+    @Path("/{fqn}/tableProfile/latest")
+    @Operation(
+            operationId = "Get the latest table and column profile",
+            summary = "Get the latest table profile",
+            description = "Get the latest table and column profile ",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Table profile and column profile",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Response getLatestTableProfile(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "FQN of the container or column", schema = @Schema(type = "String"))
+            @PathParam("fqn")
+            String fqn) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.VIEW_DATA_PROFILE);
+        ResourceContext<?> resourceContext = getResourceContextByName(fqn);
+        authorizer.authorize(securityContext, operationContext, resourceContext);
+        boolean authorizePII = authorizer.authorizePII(securityContext, resourceContext.getOwner());
+
+        return Response.status(Response.Status.OK)
+                .entity(JsonUtils.pojoToJson(repository.getLatestTableProfile(fqn, authorizePII)))
+                .build();
+    }
+
+    @GET
+    @Path("/{fqn}/tableProfile")
+    @Operation(
+            operationId = "list Profiles",
+            summary = "List of table profiles",
+            description =
+                    "Get a list of all the table profiles for the given table fqn, optionally filtered by `extension`, `startTs` and `endTs` of the profile. "
+                            + "Use cursor-based pagination to limit the number of "
+                            + "entries in the list using `limit` and `before` or `after` query params.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of table profiles",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = TableProfileList.class)))
+            })
+    public Response listTableProfiles(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "FQN of the table or column", schema = @Schema(type = "String"))
+            @PathParam("fqn")
+            String fqn,
+            @Parameter(
+                    description = "Filter table/column profiles after the given start timestamp",
+                    schema = @Schema(type = "number"))
+            @QueryParam("startTs")
+            Long startTs,
+            @Parameter(
+                    description = "Filter table/column profiles before the given end timestamp",
+                    schema = @Schema(type = "number"))
+            @QueryParam("endTs")
+            Long endTs) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.VIEW_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextByName(fqn));
+        return Response.status(Response.Status.OK)
+                .entity(JsonUtils.pojoToJson(repository.getTableProfiles(fqn, startTs, endTs)))
+                .build();
+    }
+
+    @GET
+    @Path("/{fqn}/columnProfile")
+    @Operation(
+            operationId = "list column Profiles",
+            summary = "List of column profiles",
+            description =
+                    "Get a list of all the column profiles for the given container fqn, optionally filtered by `extension`, `startTs` and `endTs` of the profile. "
+                            + "Use cursor-based pagination to limit the number of "
+                            + "entries in the list using `limit` and `before` or `after` query params.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of table profiles",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = ColumnProfileList.class)))
+            })
+    public ResultList<ColumnProfile> listColumnProfiles(
+            @Context SecurityContext securityContext,
+            @Parameter(description = "FQN of the column", schema = @Schema(type = "String"))
+            @PathParam("fqn")
+            String fqn,
+            @Parameter(
+                    description = "Filter table/column profiles after the given start timestamp",
+                    schema = @Schema(type = "number"))
+            @NotNull
+            @QueryParam("startTs")
+            Long startTs,
+            @Parameter(
+                    description = "Filter table/column profiles before the given end timestamp",
+                    schema = @Schema(type = "number"))
+            @NotNull
+            @QueryParam("endTs")
+            Long endTs) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.VIEW_DATA_PROFILE);
+        String tableFqn =
+                FullyQualifiedName.getTableFQN(
+                        fqn); // get table fqn for the resource context (vs column fqn)
+        ResourceContext<?> resourceContext = getResourceContextByName(tableFqn);
+        authorizer.authorize(securityContext, operationContext, resourceContext);
+        boolean authorizePII = authorizer.authorizePII(securityContext, resourceContext.getOwner());
+        return repository.getColumnProfiles(fqn, startTs, endTs, authorizePII);
+    }
+
+    @GET
+    @Path("/{fqn}/systemProfile")
+    @Operation(
+            operationId = "list system Profiles",
+            summary = "List of system profiles",
+            description =
+                    "Get a list of all the system profiles for the given table fqn, filtered by `extension`, `startTs` and `endTs` of the profile. "
+                            + "Use cursor-based pagination to limit the number of "
+                            + "entries in the list using `limit` and `before` or `after` query params.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of system profiles",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = SystemProfileList.class)))
+            })
+    public ResultList<SystemProfile> listSystemProfiles(
+            @Context SecurityContext securityContext,
+            @Parameter(description = "FQN of the table", schema = @Schema(type = "String"))
+            @PathParam("fqn")
+            String fqn,
+            @Parameter(
+                    description = "Filter system profiles after the given start timestamp",
+                    schema = @Schema(type = "number"))
+            @NotNull
+            @QueryParam("startTs")
+            Long startTs,
+            @Parameter(
+                    description = "Filter system profiles before the given end timestamp",
+                    schema = @Schema(type = "number"))
+            @NotNull
+            @QueryParam("endTs")
+            Long endTs) {
+        return repository.getSystemProfiles(fqn, startTs, endTs);
+    }
+
+    @PUT
+    @Path("/{id}/tableProfile")
+    @Operation(
+            operationId = "addDataProfiler",
+            summary = "Add table profile data",
+            description = "Add table profile data to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully updated the Container",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container addDataProfiler(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id") UUID id,
+            @Valid CreateTableProfile createTableProfile) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.addTableProfileData(id, createTableProfile);
+        return addHref(uriInfo, container);
+    }
+
+    @DELETE
+    @Path("/{fqn}/{entityType}/{timestamp}/profile")
+    @Operation(
+            operationId = "deleteDataProfiler",
+            summary = "Delete table profile data",
+            description = "Delete table profile data to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully deleted the Container Profile",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = TableProfile.class)))
+            })
+    public Response deleteDataProfiler(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "FQN of the table or column", schema = @Schema(type = "String"))
+            @PathParam("fqn")
+            String fqn,
+            @Parameter(
+                    description = "type of the entity table or column",
+                    schema = @Schema(type = "String"))
+            @PathParam("entityType")
+            String entityType,
+            @Parameter(description = "Timestamp of the table profile", schema = @Schema(type = "long"))
+            @PathParam("timestamp")
+            Long timestamp) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextByName(fqn));
+        repository.deleteTableProfile(fqn, entityType, timestamp);
+        return Response.ok().build();
     }
 
     @PUT
@@ -425,6 +750,99 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                 .addFollower(securityContext.getUserPrincipal().getName(), id, userId)
                 .toResponse();
     }
+
+    @PUT
+    @Path("/{id}/customMetric")
+    @Operation(
+            operationId = "addCustomMetric",
+            summary = "Add column custom metrics",
+            description = "Add column custom metrics.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "OK",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container addCustomMetric(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id") UUID id,
+            @Valid CreateCustomMetric createCustomMetric) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_DATA_PROFILE);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        CustomMetric customMetric = getCustomMetric(securityContext, createCustomMetric);
+        Container container = repository.addCustomMetric(id, customMetric);
+        return addHref(uriInfo, container);
+    }
+
+    @DELETE
+    @Path("/{id}/customMetric/{customMetricName}")
+    @Operation(
+            operationId = "deleteCustomMetric",
+            summary = "Delete custom metric from a container",
+            description = "Delete a custom metric from a container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "OK",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container deleteContainerCustomMetric(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container", schema = @Schema(type = "UUID")) @PathParam("id")
+            UUID id,
+            @Parameter(description = "column Test Type", schema = @Schema(type = "string"))
+            @PathParam("customMetricName")
+            String customMetricName) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_TESTS);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.deleteCustomMetric(id, null, customMetricName);
+        return addHref(uriInfo, container);
+    }
+
+    @DELETE
+    @Path("/{id}/customMetric/{columnName}/{customMetricName}")
+    @Operation(
+            operationId = "deleteCustomMetric",
+            summary = "Delete custom metric from a column",
+            description = "Delete a custom metric from a column.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "OK",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container deleteColumnCustomMetric(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container", schema = @Schema(type = "UUID")) @PathParam("id")
+            UUID id,
+            @Parameter(description = "column of the table", schema = @Schema(type = "string"))
+            @PathParam("columnName")
+            String columnName,
+            @Parameter(description = "column Test Type", schema = @Schema(type = "string"))
+            @PathParam("customMetricName")
+            String customMetricName) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_TESTS);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        Container container = repository.deleteCustomMetric(id, columnName, customMetricName);
+        return addHref(uriInfo, container);
+    }
+
 
     @DELETE
     @Path("/{id}/followers/{userId}")
@@ -627,6 +1045,20 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                 .withFullPath(create.getFullPath())
                 .withFileFormats(create.getFileFormats())
                 .withSourceUrl(create.getSourceUrl())
+                .withTableProfilerConfig(create.getTableProfilerConfig())
                 .withSourceHash(create.getSourceHash());
     }
+
+    private CustomMetric getCustomMetric(SecurityContext securityContext, CreateCustomMetric create) {
+        return new CustomMetric()
+                .withId(UUID.randomUUID())
+                .withDescription(create.getDescription())
+                .withName(create.getName())
+                .withColumnName(create.getColumnName())
+                .withOwner(create.getOwner())
+                .withExpression(create.getExpression())
+                .withUpdatedBy(securityContext.getUserPrincipal().getName())
+                .withUpdatedAt(System.currentTimeMillis());
+    }
+
 }

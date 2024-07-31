@@ -45,6 +45,7 @@ import {
   StepSummary,
 } from '../generated/entity/services/ingestionPipelines/ingestionPipeline';
 import { Connection as MetadataConnection } from '../generated/entity/services/metadataService';
+import { MinioConnection } from '../generated/entity/services/connections/storage/minioConnection';
 import { SearchSourceAlias } from '../interface/search.interface';
 import { DataObj, ServicesType } from '../interface/service.interface';
 import { Transi18next } from './CommonUtils';
@@ -154,6 +155,7 @@ export const getSupportedPipelineTypes = (serviceDetails: ServicesType) => {
       pipelineType.push(PipelineType.DataInsight);
     (config as MetadataConnection)?.supportsElasticSearchReindexingExtraction &&
       pipelineType.push(PipelineType.ElasticSearchReindex);
+    (config as MinioConnection)?.supportsStorageProfiler && pipelineType.push(PipelineType.StorageProfiler);
   } else {
     pipelineType = [
       PipelineType.Metadata,
@@ -196,6 +198,7 @@ export const getIngestionTypes = (
     PipelineType.Usage,
     PipelineType.Lineage,
     PipelineType.Profiler,
+    // PipelineType.StorageProfiler,
     PipelineType.Dbt,
   ];
 };

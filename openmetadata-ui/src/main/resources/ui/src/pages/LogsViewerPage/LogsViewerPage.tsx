@@ -118,6 +118,11 @@ const LogsViewerPage = () => {
           setLogs(logs.concat(res.data?.profiler_task || ''));
 
           break;
+        //   TODO : 여기는 변경되어야 할 수 있음.
+        case PipelineType.StorageProfiler:
+          setLogs(logs.concat(res.data?.profiler_task || ''));
+
+          break;
         case PipelineType.Usage:
           setLogs(logs.concat(res.data?.usage_task || ''));
 

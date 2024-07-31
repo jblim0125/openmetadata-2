@@ -74,6 +74,7 @@ export const getIngestionName = (
   if (
     [
       IngestionPipelineType.Profiler,
+      IngestionPipelineType.StorageProfiler,
       IngestionPipelineType.Metadata,
       IngestionPipelineType.Lineage,
       IngestionPipelineType.Dbt,

@@ -96,6 +96,10 @@ describe('Ingestion Workflow tests', () => {
       WorkflowType.Profiler,
       ServiceCategory.PIPELINE_SERVICES
     );
+    const storageProfilerSchema = getSchemaByWorkflowType(
+      WorkflowType.StorageProfiler,
+      ServiceCategory.PIPELINE_SERVICES
+    );
     const usageSchema = getSchemaByWorkflowType(
       WorkflowType.Usage,
       ServiceCategory.PIPELINE_SERVICES
@@ -103,6 +107,7 @@ describe('Ingestion Workflow tests', () => {
 
     expect(metadataSchema).toBeDefined();
     expect(profilerSchema).toBeDefined();
+    expect(storageProfilerSchema).toBeDefined();
     expect(usageSchema).toBeDefined();
   });
 

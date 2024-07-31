@@ -3,11 +3,10 @@ package org.openmetadata.service.jdbi3;
 import com.google.common.collect.Lists;
 import org.jdbi.v3.sqlobject.transaction.Transaction;
 import org.openmetadata.schema.EntityInterface;
-import org.openmetadata.schema.api.data.CreateStructuredContainerProfile;
+import org.openmetadata.schema.api.data.CreateTableProfile;
 import org.openmetadata.schema.api.feed.ResolveTask;
 import org.openmetadata.schema.entity.data.Container;
 import org.openmetadata.schema.entity.data.DashboardDataModel;
-import org.openmetadata.schema.entity.data.Table;
 import org.openmetadata.schema.entity.services.StorageService;
 import org.openmetadata.schema.tests.CustomMetric;
 import org.openmetadata.schema.type.*;
@@ -24,6 +23,7 @@ import org.openmetadata.service.util.ResultList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,17 +37,20 @@ public class ContainerRepository extends EntityRepository<Container> {
   private static final String CONTAINER_PATCH_FIELDS = "dataModel";
 
   // JBLIM : for profiling : extension type
+  public static final String CONTAINER_TABLE_PROFILER_CONFIG_EXTENSION = "container.tableProfilerConfig";
+
   public static final String CONTAINER_TABLE_PROFILE_EXTENSION = "container.tableProfile";
   public static final String CONTAINER_TABLE_COLUMN_PROFILE_EXTENSION = "container.columnProfile";
+  public static final String CONTAINER_SYSTEM_PROFILE_EXTENSION = "container.systemProfile";
 
   public static final String CONTAINER_SAMPLE_DATA_EXTENSION = "container.sampleData";
-  public static final String CONTAINER_TABLE_PROFILER_CONFIG_EXTENSION = "container.tableProfilerConfig";
-  public static final String CONTAINER_TABLE_COLUMN_EXTENSION = "container.column";
-  public static final String CONTAINER_TABLE_EXTENSION = "container.table";
+  // JBLIM : for profiling - custom metrics ( customMetrics.container.table / customMetrics.container.column )
   public static final String CUSTOM_METRICS_EXTENSION = "customMetrics.";
-
+  public static final String CONTAINER_TABLE_EXTENSION = "container.table";
+  public static final String CONTAINER_TABLE_COLUMN_EXTENSION = "container.column";
   // JBLIM : for profiling : data fields
   public static final String TABLE_PROFILER_CONFIG = "tableProfilerConfig";
+  public static final String DATA_MODEL_FIELD = "dataModel";
   public static final String CUSTOM_METRICS = "customMetrics";
 
 
@@ -82,13 +85,11 @@ public class ContainerRepository extends EntityRepository<Container> {
     container.setCustomMetrics(
             fields.contains(CUSTOM_METRICS) ? getCustomMetrics(container, null)
                     : container.getCustomMetrics());
-    if ((fields.contains(COLUMN_FIELD)) && (fields.contains(CUSTOM_METRICS))) {
+    if ((fields.contains(DATA_MODEL_FIELD)) && (fields.contains(CUSTOM_METRICS))) {
       for (Column column : container.getDataModel().getColumns()) {
         column.setCustomMetrics(getCustomMetrics(container, column.getName()));
       }
     }
-
-
   }
 
   @Override
@@ -98,7 +99,6 @@ public class ContainerRepository extends EntityRepository<Container> {
     container.setTableProfilerConfig(
             fields.contains(TABLE_PROFILER_CONFIG) ? container.getTableProfilerConfig() : null);
     container.setTestSuite(fields.contains("testSuite") ? container.getTestSuite() : null);
-
   }
 
   private void populateDataModelColumnTags(
@@ -222,19 +222,11 @@ public class ContainerRepository extends EntityRepository<Container> {
     }
 
     daoCollection
-            .entityExtensionDAO()
-            .insert(containerId, CONTAINER_SAMPLE_DATA_EXTENSION,
-                    "tableData", JsonUtils.pojoToJson(sampleData));
+      .entityExtensionDAO()
+      .insert(containerId, CONTAINER_SAMPLE_DATA_EXTENSION,
+              "tableData", JsonUtils.pojoToJson(sampleData));
     setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
     return container.withSampleData(sampleData);
-  }
-
-  public static void validateColumn(Container container, String columnName) {
-    boolean validColumn =
-            container.getDataModel().getColumns().stream().anyMatch(col -> col.getName().equals(columnName));
-    if (!validColumn) {
-      throw new IllegalArgumentException("Invalid column name " + columnName);
-    }
   }
 
   public Container getSampleData(UUID containerId, boolean authorizePII) {
@@ -249,14 +241,14 @@ public class ContainerRepository extends EntityRepository<Container> {
     container.setSampleData(sampleData);
     setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
 
-    // JBLIM : PII 와 관련된 태그 설정 기능은 주석처리 함.
     // Set the column tags. Will be used to mask the sample data
-//    if (!authorizePII) {
-//      populateEntityFieldTags(entityType, container.getDataModel().getColumns(),
-//              container.getFullyQualifiedName(), true);
-//      container.setTags(getTags(container));
-//      return PIIMasker.getSampleData(table);
-//    }
+    if (!authorizePII) {
+      populateEntityFieldTags(entityType, container.getDataModel().getColumns(),
+              container.getFullyQualifiedName(), true);
+      container.setTags(getTags(container));
+      return PIIMasker.getSampleData(container);
+    }
+
     return container;
   }
 
@@ -347,7 +339,7 @@ public class ContainerRepository extends EntityRepository<Container> {
     return null;
   }
 
-  public Container addTableProfileData(UUID containerId, CreateStructuredContainerProfile createTableProfile) {
+  public Container addTableProfileData(UUID containerId, CreateTableProfile createTableProfile) {
     // Validate the request content
     Container container = find(containerId, NON_DELETED);
     daoCollection
@@ -373,31 +365,31 @@ public class ContainerRepository extends EntityRepository<Container> {
                       JsonUtils.pojoToJson(columnProfile));
     }
 
-//    List<SystemProfile> systemProfiles = createTableProfile.getSystemProfile();
-//    if (systemProfiles != null && !systemProfiles.isEmpty()) {
-//      for (SystemProfile systemProfile : createTableProfile.getSystemProfile()) {
-//        // system metrics timestamp is the one of the operation. We'll need to
-//        // update the entry if it already exists in the database
-//        String storedSystemProfile =
-//                daoCollection
-//                        .profilerDataTimeSeriesDao()
-//                        .getExtensionAtTimestampWithOperation(
-//                                container.getFullyQualifiedName(),
-//                                SYSTEM_PROFILE_EXTENSION,
-//                                systemProfile.getTimestamp(),
-//                                systemProfile.getOperation().value());
-//        daoCollection
-//                .profilerDataTimeSeriesDao()
-//                .storeTimeSeriesWithOperation(
-//                        container.getFullyQualifiedName(),
-//                        SYSTEM_PROFILE_EXTENSION,
-//                        "systemProfile",
-//                        JsonUtils.pojoToJson(systemProfile),
-//                        systemProfile.getTimestamp(),
-//                        systemProfile.getOperation().value(),
-//                        storedSystemProfile != null);
-//      }
-//    }
+    List<SystemProfile> systemProfiles = createTableProfile.getSystemProfile();
+    if (systemProfiles != null && !systemProfiles.isEmpty()) {
+      for (SystemProfile systemProfile : createTableProfile.getSystemProfile()) {
+        // system metrics timestamp is the one of the operation. We'll need to
+        // update the entry if it already exists in the database
+        String storedSystemProfile =
+                daoCollection
+                        .profilerDataTimeSeriesDao()
+                        .getExtensionAtTimestampWithOperation(
+                                container.getFullyQualifiedName(),
+                                CONTAINER_SYSTEM_PROFILE_EXTENSION,
+                                systemProfile.getTimestamp(),
+                                systemProfile.getOperation().value());
+        daoCollection
+                .profilerDataTimeSeriesDao()
+                .storeTimeSeriesWithOperation(
+                        container.getFullyQualifiedName(),
+                        CONTAINER_SYSTEM_PROFILE_EXTENSION,
+                        "systemProfile",
+                        JsonUtils.pojoToJson(systemProfile),
+                        systemProfile.getTimestamp(),
+                        systemProfile.getOperation().value(),
+                        storedSystemProfile != null);
+      }
+    }
 
     setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
     return container.withProfile(createTableProfile.getTableProfile());
@@ -411,9 +403,9 @@ public class ContainerRepository extends EntityRepository<Container> {
     } else if (entityType.equalsIgnoreCase("column")) {
       extension = CONTAINER_TABLE_COLUMN_PROFILE_EXTENSION;
     }
-//    else if (entityType.equalsIgnoreCase("system")) {
-//      extension = SYSTEM_PROFILE_EXTENSION;
-//    }
+    else if (entityType.equalsIgnoreCase("system")) {
+      extension = CONTAINER_SYSTEM_PROFILE_EXTENSION;
+    }
     else {
       throw new IllegalArgumentException("entityType must be table, column or system");
     }
@@ -458,6 +450,105 @@ public class ContainerRepository extends EntityRepository<Container> {
     return columnProfileResultList;
   }
 
+  public ResultList<SystemProfile> getSystemProfiles(String fqn, Long startTs, Long endTs) {
+    List<SystemProfile> systemProfiles;
+    systemProfiles =
+            JsonUtils.readObjects(
+                    daoCollection
+                            .profilerDataTimeSeriesDao()
+                            .listBetweenTimestampsByOrder(
+                                    fqn,
+                                    CONTAINER_SYSTEM_PROFILE_EXTENSION,
+                                    startTs,
+                                    endTs,
+                                    EntityTimeSeriesDAO.OrderBy.DESC),
+                    SystemProfile.class);
+    return new ResultList<>(
+            systemProfiles, startTs.toString(), endTs.toString(), systemProfiles.size());
+  }
+
+  private void setColumnProfile(List<Column> columnList) {
+    for (Column column : columnList) {
+      ColumnProfile columnProfile =
+              JsonUtils.readValue(
+                      daoCollection
+                              .profilerDataTimeSeriesDao()
+                              .getLatestExtension(
+                                      column.getFullyQualifiedName(), CONTAINER_TABLE_COLUMN_PROFILE_EXTENSION),
+                      ColumnProfile.class);
+      column.setProfile(columnProfile);
+      if (column.getChildren() != null) {
+        setColumnProfile(column.getChildren());
+      }
+    }
+  }
+
+  public Container getLatestTableProfile(String fqn, boolean authorizePII) {
+    Container container = findByName(fqn, ALL);
+    TableProfile tableProfile =
+            JsonUtils.readValue(
+                    daoCollection
+                            .profilerDataTimeSeriesDao()
+                            .getLatestExtension(container.getFullyQualifiedName(),
+                                    CONTAINER_TABLE_PROFILE_EXTENSION),
+                    TableProfile.class);
+    container.setProfile(tableProfile);
+    setColumnProfile(container.getDataModel().getColumns());
+
+    // Set the column tags. Will be used to hide the data
+    if (!authorizePII) {
+      populateEntityFieldTags(entityType, container.getDataModel().getColumns(),
+              container.getFullyQualifiedName(), true);
+      return PIIMasker.getTableProfile(container);
+    }
+
+    return container;
+  }
+
+  public Container addCustomMetric(UUID containerId, CustomMetric customMetric) {
+    // Validate the request content
+    Container container = find(containerId, NON_DELETED);
+
+    String customMetricName = customMetric.getName();
+    String customMetricColumnName = customMetric.getColumnName();
+    String extensionType =
+            customMetricColumnName != null ? CONTAINER_TABLE_COLUMN_EXTENSION : CONTAINER_TABLE_EXTENSION;
+    String extension = CUSTOM_METRICS_EXTENSION + extensionType + "." + customMetricName;
+
+    // Validate the column name exists in the table
+    if (customMetricColumnName != null) {
+      validateColumn(container, customMetricColumnName);
+    }
+
+    CustomMetric storedCustomMetrics = getCustomMetric(container, extension);
+    if (storedCustomMetrics != null) {
+      storedCustomMetrics.setExpression(customMetric.getExpression());
+    }
+
+    daoCollection
+            .entityExtensionDAO()
+            .insert(container.getId(), extension, "customMetric", JsonUtils.pojoToJson(customMetric));
+    // return the newly created/updated custom metric only
+    setFieldsInternal(container, new EntityUtil.Fields(Set.of(CUSTOM_METRICS, DATA_MODEL_FIELD)));
+    return container;
+  }
+
+  public Container deleteCustomMetric(UUID containerId, String columnName, String metricName) {
+    // Validate the request content
+    Container container = find(containerId, NON_DELETED);
+    if (columnName != null) validateColumn(container, columnName);
+
+    // Get unique entity extension and delete data from DB
+    String extensionType = columnName != null ?
+            CONTAINER_TABLE_COLUMN_EXTENSION : CONTAINER_TABLE_EXTENSION;
+    String extension = CUSTOM_METRICS_EXTENSION + extensionType + "." + metricName;
+    daoCollection.entityExtensionDAO().delete(containerId, extension);
+
+    // return the newly created/updated custom metric only
+    setFieldsInternal(container, new EntityUtil.Fields(Set.of(CUSTOM_METRICS, DATA_MODEL_FIELD)));
+    return container;
+  }
+
   private CustomMetric getCustomMetric(Container container, String extension) {
     return JsonUtils.readValue(
             daoCollection.entityExtensionDAO().getExtension(container.getId(), extension),
@@ -485,7 +576,6 @@ public class ContainerRepository extends EntityRepository<Container> {
 
     return customMetrics;
   }
-
 
   @Override
   public void applyTags(Container container) {

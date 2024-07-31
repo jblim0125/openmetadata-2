@@ -45,6 +45,7 @@ export const PIPELINE_TYPE_LOCALIZATION = {
   [PipelineType.Lineage]: 'lineage',
   [PipelineType.Metadata]: 'metadata',
   [PipelineType.Profiler]: 'profiler',
+  [PipelineType.StorageProfiler]: 'storage-profiler',
   [PipelineType.TestSuite]: 'test-suite',
   [PipelineType.Usage]: 'usage',
   [PipelineType.Application]: 'application',

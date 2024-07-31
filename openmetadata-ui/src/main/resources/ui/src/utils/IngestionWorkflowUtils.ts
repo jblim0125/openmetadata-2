@@ -110,6 +110,12 @@ export const getSchemaByWorkflowType = (
       };
 
       break;
+    case WorkflowType.StorageProfiler:
+      schema = {
+        ...getProfilerSchemaByServiceCategory(serviceCategory),
+      };
+
+      break;
     case WorkflowType.Usage:
       schema = {
         ...databaseUsagePipeline,

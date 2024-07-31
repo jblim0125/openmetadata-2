@@ -14,10 +14,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.ws.rs.core.SecurityContext;
-import org.openmetadata.schema.entity.data.Query;
-import org.openmetadata.schema.entity.data.SearchIndex;
-import org.openmetadata.schema.entity.data.Table;
-import org.openmetadata.schema.entity.data.Topic;
+
+import org.openmetadata.schema.entity.data.*;
 import org.openmetadata.schema.entity.teams.User;
 import org.openmetadata.schema.tests.TestCase;
 import org.openmetadata.schema.type.Column;
@@ -87,10 +85,61 @@ public class PIIMasker {
     return sampleData;
   }
 
+  public static TableData maskSampleData(TableData sampleData, Container container, List<Column> columns) {
+    // If we don't have sample data, there's nothing to do
+    if (sampleData == null) {
+      return null;
+    }
+
+    List<Integer> columnsPositionToBeMasked;
+
+    // If the table itself is marked as PII, mask all the sample data
+    if (hasPiiSensitiveTag(container)) {
+      columnsPositionToBeMasked =
+              IntStream.range(0, columns.size()).boxed().collect(Collectors.toList());
+    } else {
+      // Otherwise, mask only the PII columns
+      columnsPositionToBeMasked =
+              columns.stream()
+                      .collect(
+                              Collectors.toMap(
+                                      Function.identity(), c -> sampleData.getColumns().indexOf(c.getName())))
+                      .entrySet()
+                      .stream()
+                      .filter(entry -> hasPiiSensitiveTag(entry.getKey()))
+                      .map(Map.Entry::getValue)
+                      .collect(Collectors.toList());
+    }
+
+    // Mask rows
+    sampleData.setRows(
+            sampleData.getRows().stream()
+                    .map(r -> maskSampleDataRow(r, columnsPositionToBeMasked))
+                    .collect(Collectors.toList()));
+
+    List<String> sampleDataColumns = sampleData.getColumns();
+
+    // Flag column names as masked
+    columnsPositionToBeMasked.forEach(
+            position ->
+                    sampleDataColumns.set(position, flagMaskedName(sampleDataColumns.get(position))));
+
+    return sampleData;
+  }
+
   public static Table getSampleData(Table table) {
     TableData sampleData = maskSampleData(table.getSampleData(), table, table.getColumns());
     table.setSampleData(sampleData);
     return table;
+  }
+
+  public static Container getSampleData(Container container) {
+    if ( container.getSampleData() instanceof TableData ) {
+      TableData sampleData = maskSampleData((TableData)container.getSampleData(), container,
+              container.getDataModel().getColumns());
+      container.setSampleData(sampleData);
+    }
+    return container;
   }
 
   /*
@@ -138,6 +187,15 @@ public class PIIMasker {
       }
     }
     return table;
+  }
+  public static Container getTableProfile(Container container) {
+    for (Column column : container.getDataModel().getColumns()) {
+      if (hasPiiSensitiveTag(column)) {
+        column.setProfile(null);
+        column.setName(flagMaskedName(column.getName()));
+      }
+    }
+    return container;
   }
 
   public static List<ColumnProfile> getColumnProfile(
@@ -251,6 +309,10 @@ public class PIIMasker {
 
   private static boolean hasPiiSensitiveTag(Table table) {
     return table.getTags().stream().map(TagLabel::getTagFQN).anyMatch(SENSITIVE_PII_TAG::equals);
+  }
+
+  private static boolean hasPiiSensitiveTag(Container container) {
+    return container.getTags().stream().map(TagLabel::getTagFQN).anyMatch(SENSITIVE_PII_TAG::equals);
   }
 
   private static boolean hasPiiSensitiveTag(SearchIndex searchIndex) {

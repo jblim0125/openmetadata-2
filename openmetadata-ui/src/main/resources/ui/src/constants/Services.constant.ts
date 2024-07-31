@@ -360,6 +360,7 @@ export const INGESTION_GUIDE_MAP = {
   [PipelineType.Usage]: addUsageIngestionGuide,
   [PipelineType.Lineage]: addLineageIngestionGuide,
   [PipelineType.Profiler]: addProfilerIngestionGuide,
+  [PipelineType.StorageProfiler]: addProfilerIngestionGuide,
   [PipelineType.Dbt]: addDBTIngestionGuide,
   [PipelineType.Metadata]: addMetadataIngestionGuide,
 };
