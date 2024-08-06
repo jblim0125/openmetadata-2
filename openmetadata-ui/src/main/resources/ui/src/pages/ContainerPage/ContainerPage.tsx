@@ -79,8 +79,15 @@ import { DEFAULT_ENTITY_PERMISSION } from '../../utils/PermissionsUtils';
 import { getTagsWithoutTier, getTierTags } from '../../utils/TableUtils';
 import { createTagObject, updateTierTag } from '../../utils/TagsUtils';
 import { showErrorToast, showSuccessToast } from '../../utils/ToastUtils';
+import SampleDataContainerComponent from '../../components/Container/SampleDataTable/SampleDataContainerTable.component';
+import { getTestCaseExecutionSummary } from '../../rest/testAPI';
+import { TestSummary } from '../../generated/tests/testCase';
+import ContainerTableProfiler from '../../components/Container/Profiler/TableProfiler/TableProfiler';
+// import {TableData} from '../../generated/entity/data/table';
+// import { useTourProvider } from '../../context/TourProvider/TourProvider';
 
 const ContainerPage = () => {
+  // const { isTourOpen, isTourPage } = useTourProvider();
   const history = useHistory();
   const { t } = useTranslation();
   const { currentUser } = useApplicationStore();
@@ -100,6 +107,7 @@ const ContainerPage = () => {
   const [containerChildrenData, setContainerChildrenData] = useState<
     Container['children']
   >([]);
+  const [testCaseSummary, setTestCaseSummary] = useState<TestSummary>();
   const [containerPermissions, setContainerPermissions] =
     useState<OperationPermission>(DEFAULT_ENTITY_PERMISSION);
 
@@ -137,6 +145,21 @@ const ContainerPage = () => {
       setHasError(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTestCaseSummary = async () => {
+    if (isUndefined(containerData?.testSuite?.id)) {
+      return;
+    }
+
+    try {
+      const response = await getTestCaseExecutionSummary(
+        containerData?.testSuite?.id
+      );
+      setTestCaseSummary(response);
+    } catch (error) {
+      setTestCaseSummary(undefined);
     }
   };
 
@@ -223,6 +246,7 @@ const ContainerPage = () => {
     editDescriptionPermission,
     editCustomAttributePermission,
     editLineagePermission,
+    viewSampleDataPermission,
     viewBasicPermission,
     viewAllPermission,
   } = useMemo(
@@ -243,6 +267,8 @@ const ContainerPage = () => {
         !deleted,
       viewBasicPermission:
         containerPermissions.ViewAll || containerPermissions.ViewBasic,
+      viewSampleDataPermission:
+        containerPermissions.ViewAll || containerPermissions.ViewSampleData,
       viewAllPermission: containerPermissions.ViewAll,
     }),
     [containerPermissions, deleted]
@@ -669,6 +695,29 @@ const ContainerPage = () => {
           />
         ),
       },
+      ...(isDataModelEmpty
+        ? []
+        : [
+            {
+              label: (
+                <TabsLabel
+                  id={EntityTabs.SAMPLE_DATA}
+                  name={t('label.sample-data')}
+                />
+              ),
+              key: EntityTabs.SAMPLE_DATA,
+              children: !viewSampleDataPermission ? (
+                <ErrorPlaceHolder type={ERROR_PLACEHOLDER_TYPE.PERMISSION} />
+              ) : (
+                <SampleDataContainerComponent
+                  containerId={containerData?.id ?? ''}
+                  isDeleted={deleted}
+                  ownerId={containerData?.owner?.id ?? ''}
+                  permissions={containerPermissions}
+                />
+              ),
+            },
+          ]),
       {
         label: <TabsLabel id={EntityTabs.LINEAGE} name={t('label.lineage')} />,
         key: EntityTabs.LINEAGE,
@@ -683,6 +732,28 @@ const ContainerPage = () => {
           </LineageProvider>
         ),
       },
+      ...(isDataModelEmpty
+        ? []
+        : [
+            {
+              label: (
+                <TabsLabel
+                  id={EntityTabs.PROFILER}
+                  name={t('label.profiler-amp-data-quality')}
+                />
+              ),
+              key: EntityTabs.PROFILER,
+              children: !viewAllPermission ? (
+                <ErrorPlaceHolder type={ERROR_PLACEHOLDER_TYPE.PERMISSION} />
+              ) : (
+                <ContainerTableProfiler
+                  container={containerData}
+                  permissions={containerPermissions}
+                  testCaseSummary={testCaseSummary}
+                />
+              ),
+            },
+          ]),
       {
         label: (
           <TabsLabel
@@ -749,6 +820,7 @@ const ContainerPage = () => {
   // Effects
   useEffect(() => {
     fetchResourcePermission(decodedContainerName);
+    fetchTestCaseSummary();
   }, [decodedContainerName]);
 
   // Rendering

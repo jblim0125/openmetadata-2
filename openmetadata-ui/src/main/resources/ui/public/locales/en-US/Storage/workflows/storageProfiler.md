@@ -5,19 +5,30 @@ This workflow allows you to profile your container assets and gain insights into
 ## Configuration
 
 $$section
+### Bucket Filter Pattern $(id="bucketFilterPattern")
+
+Object Storage Bucket filter patterns to control whether to include bucket as part of metadata ingestion.
+
+**Include**: Explicitly include bucket by adding a list of regular expressions to the `Include` field. We will include all bucket with names matching one or more of the supplied regular expressions. All other bucket will be excluded.
+
+For example, to include only those bucket whose name starts with the word `demo`, add the regex pattern in the include field as `^demo.*`.
+
+**Exclude**: Explicitly exclude bucket by adding a list of regular expressions to the `Exclude` field. We will exclude all bucket with names matching one or more of the supplied regular expressions. All other bucket will be included.
+
+For example, to exclude all bucket with the name containing the word `demo`, add the regex pattern in the exclude field as `.*demo.*`.
+
+$$
+
+$$section
 ### Container Filter Pattern $(id="containerFilterPattern")
 
 Container(fileName) filter patterns to control whether to include container as part of metadata ingestion.
 
-**Include**: Explicitly include container by adding a list of regular expressions to the `Include` field. 
-We will include all container with names matching one or more of the supplied regular expressions. 
-All other container will be excluded.
+**Include**: Explicitly include container by adding a list of regular expressions to the `Include` field. We will include all container with names matching one or more of the supplied regular expressions. All other container will be excluded.
 
-For example, to include only those container whose name starts with the word `demo`, 
-add the regex pattern in the include field as `^demo.*`.
+For example, to include only those container whose name starts with the word `demo`, add the regex pattern in the include field as `^demo.*`.
 
-**Exclude**: Explicitly exclude container by adding a list of regular expressions to the `Exclude` field. 
-We will exclude all container with names matching one or more of the supplied regular expressions. All other container will be included.
+**Exclude**: Explicitly exclude container by adding a list of regular expressions to the `Exclude` field. We will exclude all container with names matching one or more of the supplied regular expressions. All other container will be included.
 
 For example, to exclude all container with the name containing the word `demo`, add the regex pattern in the exclude field as `.*demo.*`.
 
@@ -31,11 +42,9 @@ $$
 
 $$section
 ### Use FQN For Filtering Views $(id="useFqnForFiltering")
-Set this flag when you want to apply the filters on Fully Qualified Names (e.g `service_name.container_name`) instead of 
-applying them to the raw name of the asset (e.g `container_name`). 
+Set this flag when you want to apply the filters on Fully Qualified Names (e.g `service_name.container_name`) instead of applying them to the raw name of the asset (e.g `container_name`). 
 
-This Flag is useful in scenarios when you have different contents with same name in multiple bucket or path 
-and you want to filter out only one of them. 
+This Flag is useful in scenarios when you have different contents with same name in multiple bucket or path and you want to filter out only one of them. 
 
 $$
 

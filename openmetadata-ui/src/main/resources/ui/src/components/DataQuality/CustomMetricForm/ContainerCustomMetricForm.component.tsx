@@ -21,16 +21,16 @@ import { CustomMetric } from '../../../generated/entity/data/container';
 import { getEntityName } from '../../../utils/EntityUtils';
 import Loader from '../../common/Loader/Loader';
 import SchemaEditor from '../../Database/SchemaEditor/SchemaEditor';
-import { CustomMetricFormProps } from './CustomMetricForm.interface';
+import { ContainerCustomMetricFormProps } from './CustomMetricForm.interface';
 
-const CustomMetricForm = ({
+const ContainerCustomMetricForm = ({
   isColumnMetric,
   initialValues,
   onFinish,
   form,
-  table,
+  container,
   isEditMode = false,
-}: CustomMetricFormProps) => {
+}: ContainerCustomMetricFormProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
@@ -45,20 +45,20 @@ const CustomMetricForm = ({
   }, [location.search]);
 
   const { metricNames, columnOptions } = useMemo(() => {
-    let customMetrics = table?.customMetrics ?? [];
+    let customMetrics = container?.customMetrics ?? [];
 
     if (isColumnMetric) {
       customMetrics =
-        table?.columns?.find(
+        container?.dataModel?.columns?.find(
           (column) => column.fullyQualifiedName === activeColumnFqn
         )?.customMetrics ?? [];
     }
 
     return {
       metricNames: customMetrics.map((metric) => metric.name),
-      columnOptions: table ? table.columns : [],
+      columnOptions: container ? container?.dataModel?.columns : [],
     };
-  }, [activeColumnFqn, isColumnMetric, table]);
+  }, [activeColumnFqn, isColumnMetric, container]);
 
   useEffect(() => {
     if (form && initialValues) {
@@ -168,4 +168,4 @@ const CustomMetricForm = ({
   );
 };
 
-export default CustomMetricForm;
+export default ContainerCustomMetricForm;

@@ -12,7 +12,17 @@
  */
 import { FormInstance } from 'antd';
 import { Table } from '../../../generated/entity/data/table';
+import { Container } from '../../../generated/entity/data/container';
 import { CustomMetric } from '../../../generated/tests/customMetric';
+
+export interface ContainerCustomMetricFormProps {
+  isColumnMetric: boolean;
+  initialValues?: CustomMetric;
+  onFinish: (values: CustomMetric) => void;
+  form?: FormInstance<CustomMetric>;
+  container?: Container;
+  isEditMode?: boolean;
+}
 
 export interface CustomMetricFormProps {
   isColumnMetric: boolean;

@@ -22,6 +22,7 @@ import {
   CalculateColumnProfilerMetricsInterface,
   ColumnMetricsInterface,
 } from './TableProfilerUtils.interface';
+import { Container } from '../generated/entity/data/container';
 
 export const calculateRowCountMetrics = (
   profiler: TableProfile[],
@@ -147,6 +148,15 @@ export const calculateCustomMetrics = (
 
 export const getColumnCustomMetric = (table?: Table, columnFqn?: string) => {
   return table?.columns.find(
+    (column) => column.fullyQualifiedName === columnFqn
+  )?.customMetrics;
+};
+
+export const getContainerColumnCustomMetric = (
+  container?: Container,
+  columnFqn?: string
+) => {
+  return container?.dataModel?.columns.find(
     (column) => column.fullyQualifiedName === columnFqn
   )?.customMetrics;
 };

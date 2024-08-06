@@ -13,6 +13,7 @@
 import { AxiosResponse } from 'axios';
 import { CustomMetric, Table } from '../generated/entity/data/table';
 import APIClient from './index';
+import { Container } from '../generated/entity/data/container';
 
 const BASE_URL = '/tables';
 
@@ -34,12 +35,40 @@ export const deleteCustomMetric = async ({
   );
 };
 
+export const deleteContainerCustomMetric = async ({
+  containerId,
+  columnName,
+  customMetricName,
+}: {
+  containerId: string;
+  columnName?: string;
+  customMetricName: string;
+}) => {
+  const url = columnName
+    ? `${columnName}/${customMetricName}`
+    : customMetricName;
+
+  return await APIClient.delete<Container>(
+    `/containers/${containerId}/customMetric/${url}?recursive=true&hardDelete=true`
+  );
+};
+
 export const putCustomMetric = async (
   tableId: string,
   customMetric: CustomMetric
 ) => {
   return await APIClient.put<CustomMetric, AxiosResponse<Table>>(
     `${BASE_URL}/${tableId}/customMetric`,
+    customMetric
+  );
+};
+
+export const putContainerCustomMetric = async (
+  containerId: string,
+  customMetric: CustomMetric
+) => {
+  return await APIClient.put<CustomMetric, AxiosResponse<Container>>(
+    `containers/${containerId}/customMetric`,
     customMetric
   );
 };
