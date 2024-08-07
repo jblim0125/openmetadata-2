@@ -86,8 +86,10 @@ public class ContainerRepository extends EntityRepository<Container> {
             fields.contains(CUSTOM_METRICS) ? getCustomMetrics(container, null)
                     : container.getCustomMetrics());
     if ((fields.contains(DATA_MODEL_FIELD)) && (fields.contains(CUSTOM_METRICS))) {
-      for (Column column : container.getDataModel().getColumns()) {
-        column.setCustomMetrics(getCustomMetrics(container, column.getName()));
+      if( container.getDataModel() != null) {
+        for (Column column : container.getDataModel().getColumns()) {
+          column.setCustomMetrics(getCustomMetrics(container, column.getName()));
+        }
       }
     }
   }
