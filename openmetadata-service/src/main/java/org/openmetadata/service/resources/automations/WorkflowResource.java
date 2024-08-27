@@ -75,7 +75,6 @@ import org.openmetadata.service.util.ResultList;
 @Tag(
     name = "Workflows",
     description = "APIs related to creating and managing Automation workflows.")
-@Hidden
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Collection(name = "Workflow")

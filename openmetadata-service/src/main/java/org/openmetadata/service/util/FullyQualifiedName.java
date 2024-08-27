@@ -186,6 +186,16 @@ public class FullyQualifiedName {
     return build(split[0], split[1], split[2], split[3]);
   }
 
+  public static String GetContainerTableFQN(String columnFQN) {
+    // Split columnFQN of format ObjectServiceName.BucketName.ContainerName.columnName
+    String[] split = split(columnFQN);
+    if (split.length != 4) {
+      throw new IllegalArgumentException("Invalid fully qualified column name of container data " + columnFQN);
+    }
+    // Return Container TableData FQN of format objectService.BucketName.ContainerName
+    return build(split[0], split[1], split[2]);
+  }
+
   public static String getColumnName(String columnFQN) {
     return FullyQualifiedName.split(columnFQN)[4]; // Get from column name from FQN
   }

@@ -44,7 +44,6 @@ import org.openmetadata.service.util.ResultList;
     value = "Test Connection Definitions collection",
     tags = "Test Connection Definitions collection")
 @Tag(name = "Test Connection Definitions")
-@Hidden
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Collection(name = "TestConnectionDefinitions")

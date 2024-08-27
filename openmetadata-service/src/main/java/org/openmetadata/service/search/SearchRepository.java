@@ -585,6 +585,11 @@ public class SearchRepository {
             indexMapping.getChildAliases(clusterAlias),
             List.of(new ImmutablePair<>("service.id", docId)));
       }
+      case Entity.CLASSIFICATION -> {
+        List<String> alias = indexMapping.getChildAliases(clusterAlias);
+        searchClient.deleteEntityByFields(
+                alias, List.of(new ImmutablePair<>(entityType + ".id", docId)));
+      }
       default -> {
         searchClient.deleteEntityByFields(
             indexMapping.getChildAliases(clusterAlias),

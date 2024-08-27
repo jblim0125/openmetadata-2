@@ -610,7 +610,7 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
         OperationContext operationContext =
                 new OperationContext(entityType, MetadataOperation.VIEW_DATA_PROFILE);
         String tableFqn =
-                FullyQualifiedName.getTableFQN(
+                FullyQualifiedName.GetContainerTableFQN(
                         fqn); // get table fqn for the resource context (vs column fqn)
         ResourceContext<?> resourceContext = getResourceContextByName(tableFqn);
         authorizer.authorize(securityContext, operationContext, resourceContext);
