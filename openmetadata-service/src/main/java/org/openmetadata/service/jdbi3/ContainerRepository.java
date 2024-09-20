@@ -21,10 +21,7 @@ import org.openmetadata.service.util.FullyQualifiedName;
 import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.ResultList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.openmetadata.common.utils.CommonUtil.listOrEmpty;
@@ -92,6 +89,12 @@ public class ContainerRepository extends EntityRepository<Container> {
         }
       }
     }
+    container.setTableProfilerConfig(
+            fields.contains(TABLE_PROFILER_CONFIG)
+                    ? getTableProfilerConfig(container)
+                    : container.getTableProfilerConfig());
+
+
   }
 
   @Override

@@ -1034,6 +1034,9 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
     }
 
     private Container getContainer(CreateContainer create, String user) {
+        // jblim
+        // 생성 요청에서 들어온 데이터 필드들 중 선택해서 데이터를 넣어주는 부분으로
+        // Schema 를 변경했다면 이 부분에서도 설정이 필요하다.
         return repository
                 .copy(new Container(), create, user)
                 .withService(getEntityReference(Entity.STORAGE_SERVICE, create.getService()))
@@ -1046,6 +1049,7 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                 .withFileFormats(create.getFileFormats())
                 .withSourceUrl(create.getSourceUrl())
                 .withTableProfilerConfig(create.getTableProfilerConfig())
+                .withRdfs(create.getRdfs())
                 .withSourceHash(create.getSourceHash());
     }
 
