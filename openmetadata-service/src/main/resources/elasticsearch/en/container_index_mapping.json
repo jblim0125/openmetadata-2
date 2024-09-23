@@ -446,6 +446,36 @@
       "lifeCycle": {
         "type": "object"
       },
+      "rdfs": {
+        "properties": {
+          "name": {
+            "type": "text"
+          },
+          "object": {
+            "type": "text"
+          },
+          "tags": {
+            "properties": {
+              "tagFQN": {
+                "type": "keyword",
+                "normalizer": "lowercase_normalizer"
+              },
+              "labelType": {
+                "type": "keyword"
+              },
+              "description": {
+                "type": "text"
+              },
+              "source": {
+                "type": "keyword"
+              },
+              "state": {
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      },
       "usageSummary": {
         "properties": {
           "dailyStats": {
