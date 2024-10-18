@@ -21,7 +21,12 @@ import org.openmetadata.service.util.FullyQualifiedName;
 import org.openmetadata.service.util.JsonUtils;
 import org.openmetadata.service.util.ResultList;
 
-import java.util.*;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.openmetadata.common.utils.CommonUtil.listOrEmpty;
@@ -41,6 +46,7 @@ public class ContainerRepository extends EntityRepository<Container> {
   public static final String CONTAINER_SYSTEM_PROFILE_EXTENSION = "container.systemProfile";
 
   public static final String CONTAINER_SAMPLE_DATA_EXTENSION = "container.sampleData";
+  public static final String CONTAINER_UNSTRUCTURED_SAMPLE_DATA_EXTENSION = "container.unstructured_sampleData";
   // JBLIM : for profiling - custom metrics ( customMetrics.container.table / customMetrics.container.column )
   public static final String CUSTOM_METRICS_EXTENSION = "customMetrics.";
   public static final String CONTAINER_TABLE_EXTENSION = "container.table";
@@ -234,9 +240,43 @@ public class ContainerRepository extends EntityRepository<Container> {
     return container.withSampleData(sampleData);
   }
 
+  @Transaction
+  public Container addUnstructuredSampleData(UUID containerId, String sampleData) {
+    Container container = find(containerId, NON_DELETED);
+
+    daoCollection
+            .entityExtensionDAO()
+            .insert(containerId, CONTAINER_UNSTRUCTURED_SAMPLE_DATA_EXTENSION,
+                    "docSample", sampleData);
+    setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
+    try {
+      sampleData = sampleData.replaceAll("^\"|\"$", "");
+      sampleData = URLDecoder.decode(sampleData, "UTF-8");
+    } catch (UnsupportedEncodingException ignored) {
+    }
+    return container.withSampleData(sampleData);
+  }
+
   public Container getSampleData(UUID containerId, boolean authorizePII) {
     // Validate the request content
     Container container = find(containerId, NON_DELETED);
+    // for unstructured data
+    switch(container.getFileFormats().get(0)) {
+      case Doc, Docx, Hwp, Hwpx -> {
+        String sampleData =
+                daoCollection
+                        .entityExtensionDAO()
+                        .getExtension(container.getId(), CONTAINER_UNSTRUCTURED_SAMPLE_DATA_EXTENSION);
+        try {
+          sampleData = sampleData.replaceAll("^\"|\"$", "");
+          sampleData = URLDecoder.decode(sampleData, "UTF-8");
+        } catch (UnsupportedEncodingException ignored) {
+        }
+        container.setSampleData(sampleData);
+        return container;
+      }
+    }
+    // for structured data
     TableData sampleData =
             JsonUtils.readValue(
                     daoCollection
@@ -262,6 +302,7 @@ public class ContainerRepository extends EntityRepository<Container> {
     // Validate the request content
     Container container = find(containerId, NON_DELETED);
     daoCollection.entityExtensionDAO().delete(containerId, CONTAINER_SAMPLE_DATA_EXTENSION);
+    daoCollection.entityExtensionDAO().delete(containerId, CONTAINER_UNSTRUCTURED_SAMPLE_DATA_EXTENSION);
     setFieldsInternal(container, EntityUtil.Fields.EMPTY_FIELDS);
     return container;
   }

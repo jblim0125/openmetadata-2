@@ -36,6 +36,8 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.UUID;
 
@@ -104,7 +106,7 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                             content =
                             @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = ContainerResource.ContainerList.class)))
+                                    schema = @Schema(implementation = ContainerList.class)))
             })
     public ResultList<Container> list(
             @Context UriInfo uriInfo,
@@ -353,6 +355,43 @@ public class ContainerResource extends EntityResource<Container, ContainerReposi
                 new OperationContext(entityType, MetadataOperation.EDIT_SAMPLE_DATA);
         authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
         Container container = repository.addTableSampleData(id, tableData);
+        return addHref(uriInfo, container);
+    }
+
+    @PUT
+    @Path("/{id}/unstruct_sampleData")
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Operation(
+            operationId = "addUnstructuredSampleData",
+            summary = "Add Unstructured sample data",
+            description = "Add Unstructured sample data to the container.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successfully update the Container",
+                            content =
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Container.class)))
+            })
+    public Container addUnstructuredSampleData(
+            @Context UriInfo uriInfo,
+            @Context SecurityContext securityContext,
+            @Parameter(description = "Id of the container",
+                    schema = @Schema(type = "UUID")) @PathParam("id")
+            UUID id,
+            String data) {
+        OperationContext operationContext =
+                new OperationContext(entityType, MetadataOperation.EDIT_SAMPLE_DATA);
+        authorizer.authorize(securityContext, operationContext, getResourceContextById(id));
+        String encodeStr = "";
+        try {
+            encodeStr = URLEncoder.encode(data, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        encodeStr = "\"" + encodeStr + "\"";
+        Container container = repository.addUnstructuredSampleData(id, encodeStr);
         return addHref(uriInfo, container);
     }
 
