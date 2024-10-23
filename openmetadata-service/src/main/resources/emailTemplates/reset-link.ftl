@@ -73,7 +73,6 @@
                                       </tbody>
                                     </table>
                                     <div class="" style="border-top: 0; font-size: 1px; mso-line-height-rule: exactly; line-height: 1px; max-height: 0; margin: 20px 0; overflow: hidden;"> ​ </div>
-                                    <p class="" style="margin: 20px 0; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px;"> If you did not request this change, please let us know. You can contact us on&nbsp;<a style="color: #316fea; text-decoration: none;" href="${supportUrl}" target="_blank" rel="noopener">Slack</a>&nbsp;for any questions you may have.</p>
                                     <p class="tw-signoff" style="margin: 45px 0 5px; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px;"> Happy Exploring!<br />Thanks</p>
                               </td>
                             </tr>

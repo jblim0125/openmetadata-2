@@ -45,7 +45,6 @@
                                 <h1 class="tw-h1" style="font-size: 24px; font-weight: bold; mso-line-height-rule: exactly; line-height: 32px; margin: 0 0 20px; color: #474747;"> Hi ${userName},</h1>
                                 <br />
                                 <span style="font-weight: 400;">This is a Test Email, receiving this Email Confirms that you have successfully configured OpenMetadata to send Mails.</span>
-                                <p class="" style="margin: 20px 0; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px;"> Feel free to reachout to us on&nbsp; <a style="color: #316fea; text-decoration: none;" href="${supportUrl}" target="_blank" rel="noopener">Slack</a>&nbsp;for any questions you may have. </p>
                                 <p class="tw-signoff" style="margin: 45px 0 5px; font-size: 16px; mso-line-height-rule: exactly; line-height: 24px;"> Thanks, <br />The ${entity} Team </p>
                               </td>
                             </tr>
