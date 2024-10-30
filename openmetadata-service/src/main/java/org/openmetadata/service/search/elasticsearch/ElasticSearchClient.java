@@ -1319,7 +1319,7 @@ public class ElasticSearchClient implements SearchClient {
     return QueryBuilders.queryStringQuery(query)
         .fields(fields)
         .type(MultiMatchQueryBuilder.Type.MOST_FIELDS)
-        .defaultOperator(Operator.AND)
+        .defaultOperator(Operator.OR)
         .fuzziness(Fuzziness.AUTO)
         .tieBreaker(0.9f);
   }
